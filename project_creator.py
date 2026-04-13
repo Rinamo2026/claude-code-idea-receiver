@@ -1,4 +1,4 @@
-"""プロジェクト作成 — init-project.sh + ドメイン別handoff.md 生成"""
+"""プロジェクト作成 — init-project.sh (bundled or custom) + ドメイン別handoff.md 生成"""
 import asyncio
 import functools
 import json
@@ -121,14 +121,20 @@ async def create_project(
     _validate_path_within(proj_path, config.DEV_ROOT)
 
     # プロジェクトディレクトリ初期化
-    if config.INIT_PROJECT_SCRIPT:
-        # カスタムスクリプトで初期化 (スレッドプールで実行)
-        loop = asyncio.get_event_loop()
+    # Resolve init script: user-provided > bundled template
+    init_script = config.INIT_PROJECT_SCRIPT
+    if not init_script:
+        bundled = config.BASE_DIR / "templates" / "init-project.sh"
+        if bundled.exists():
+            init_script = str(bundled)
+
+    loop = asyncio.get_event_loop()
+    if init_script:
         result = await loop.run_in_executor(
             None,
             functools.partial(
                 subprocess.run,
-                [config.GIT_BASH, config.INIT_PROJECT_SCRIPT, str(proj_path), "--git"],
+                [config.GIT_BASH, init_script, str(proj_path), "--git"],
                 capture_output=True,
                 encoding="utf-8",
                 errors="replace",
@@ -137,12 +143,13 @@ async def create_project(
         )
         if result.returncode != 0:
             raise RuntimeError(f"init-project.sh failed (rc={result.returncode}): stdout={result.stdout.strip()} stderr={result.stderr.strip()}")
-        logger.info("Project created via script: %s", result.stdout.strip())
+        logger.info("Project created via %s: %s",
+                     "custom script" if config.INIT_PROJECT_SCRIPT else "bundled template",
+                     result.stdout.strip())
     else:
-        # Built-in init: no external script required.
+        # Minimal fallback: no bash available or template missing
         proj_path.mkdir(parents=True, exist_ok=True)
         (proj_path / "memory").mkdir(exist_ok=True)
-        loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None,
             functools.partial(
@@ -152,27 +159,7 @@ async def create_project(
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             ),
         )
-        # .gitignore for a typical Claude Code project
-        gitignore = proj_path / ".gitignore"
-        if not gitignore.exists():
-            gitignore.write_text(
-                "# Claude Code\n"
-                ".claude/settings.local.json\n"
-                ".claude_start.sh\n"
-                ".claude_start.ps1\n"
-                "\n"
-                "# Python\n"
-                "__pycache__/\n"
-                "*.pyc\n"
-                ".venv/\n"
-                "venv/\n"
-                "\n"
-                "# OS\n"
-                ".DS_Store\n"
-                "Thumbs.db\n",
-                encoding="utf-8",
-            )
-        logger.info("Project created (built-in init): %s", proj_path)
+        logger.info("Project created (minimal fallback): %s", proj_path)
 
     # ドメイン情報取得
     domain = get_domain(classification.domain) or get_domain("business")

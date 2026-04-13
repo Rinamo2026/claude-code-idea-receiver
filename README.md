@@ -114,12 +114,14 @@ WebAuthn `RP_ID` / `ORIGIN` default to `localhost` — no configuration needed f
 <details>
 <summary>Advanced options</summary>
 
+A bundled `templates/init-project.sh` is used by default to scaffold new projects
+(git init, memory/, .gitignore, CLAUDE.md, handoff.md, .claude/).
+You can customize it in place, or point to your own script:
+
 ```env
-# Custom project initialization script (optional)
+# Override with your own init script (optional)
 # Called as: bash $INIT_PROJECT_SCRIPT <project_path> --git
-# If not set, idea-receiver creates a full project scaffold automatically
-# (git init, memory/, .gitignore, CLAUDE.md, handoff.md, .claude/).
-INIT_PROJECT_SCRIPT=/path/to/init-project.sh
+INIT_PROJECT_SCRIPT=/path/to/my-init-project.sh
 
 # Git Bash path — Windows only, usually auto-detected
 GIT_BASH=C:/Program Files/Git/bin/bash.exe
