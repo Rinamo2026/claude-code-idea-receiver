@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projects — Idea Receiver</title>
+<link rel="stylesheet" href="static/style.css">
+<style>
+  .screen { max-width: 900px; }
+
+  .nav-links { display: flex; gap: 12px; align-items: center; }
+  .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 0.85rem; }
+  .nav-links a:hover { color: var(--text); }
+
+  .stats {
+    display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; flex: 1; min-width: 100px;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; }
+  .stat-card .label { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+
+  .filters {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-dim);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .filter-btn.active { border-color: var(--primary); color: var(--text); background: var(--surface2); }
+  .filter-btn:hover { color: var(--text); }
+
+  .project-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+  .project-card:hover { border-color: var(--primary); }
+
+  .project-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; margin-bottom: 8px;
+  }
+  .project-name { font-size: 1rem; font-weight: 600; }
+  .project-category {
+    font-size: 0.7rem; color: var(--text-dim); background: var(--surface2);
+    padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+  }
+
+  .project-summary {
+    font-size: 0.85rem; color: var(--text-dim); margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .project-meta {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+
+  .project-path {
+    font-size: 0.7rem; color: var(--text-dim); margin-top: 6px;
+    font-family: monospace; opacity: 0.7;
+  }
+
+  .progress-pills {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .pill {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .pill.done { background: var(--primary); border-color: var(--primary); }
+  .pill.current { background: var(--accent); border-color: var(--accent); animation: pulse 1.5s infinite; }
+  .pill.failed { background: var(--error); border-color: var(--error); }
+
+  .tag {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    font-size: 0.65rem; font-weight: 600;
+  }
+  .tag-research { background: #1e3d3d; color: var(--accent); }
+  .tag-handoff { background: #2d2d4e; color: #9999cc; }
+  .tag-git { background: #2d3d2e; color: var(--success); }
+  .tag-memory { background: #3d2d3e; color: #cc99dd; }
+
+  .confidence-bar {
+    width: 40px; height: 4px; background: var(--surface2); border-radius: 2px;
+    display: inline-block; vertical-align: middle; margin-left: 4px;
+  }
+  .confidence-fill {
+    height: 100%; border-radius: 2px; background: var(--accent);
+  }
+
+  .empty-dashboard {
+    text-align: center; padding: 60px 20px; color: var(--text-dim);
+  }
+  .empty-dashboard a { color: var(--primary); text-decoration: none; }
+
+  .sort-select {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 8px; border-radius: 8px; font-size: 0.75rem;
+  }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <header>
+      <h1>Projects</h1>
+      <div class="nav-links">
+        <a href="/">Portal</a>
+        <a href="/ideas">アイディア投入</a>
+      </div>
+    </header>
+
+    <div id="stats" class="stats"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div id="filters" class="filters"></div>
+      <select id="sort" class="sort-select">
+        <option value="newest">新しい順</option>
+        <option value="oldest">古い順</option>
+        <option value="status">ステータス順</option>
+      </select>
+    </div>
+
+    <div id="project-list"></div>
+  </div>
+
+<script>
+const API = window.__BASE_PATH || '';
+let projects = [];
+let currentFilter = 'all';
+
+const STATUS_ORDER = ['received','classifying','creating','launching','active','failed'];
+const STATUS_LABELS = {
+  received:'受領', classifying:'分類中', creating:'作成中',
+  launching:'起動中', active:'稼働中', failed:'失敗'
+};
+
+async function loadProjects() {
+  const res = await fetch(`${API}/api/projects`);
+  if (res.status === 401) { window.location.href = '/ideas'; return; }
+  projects = await res.json();
+  renderStats();
+  renderFilters();
+  renderList();
+}
+
+function renderStats() {
+  const total = projects.length;
+  const active = projects.filter(p => p.status === 'active').length;
+  const failed = projects.filter(p => p.status === 'failed').length;
+  const inProgress = projects.filter(p => !['active','failed'].includes(p.status)).length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="value">${total}</div><div class="label">総数</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--success)">${active}</div><div class="label">稼働中</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--accent)">${inProgress}</div><div class="label">進行中</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--error)">${failed}</div><div class="label">失敗</div></div>
+  `;
+}
+
+function renderFilters() {
+  const statuses = ['all', ...new Set(projects.map(p => p.status))];
+  document.getElementById('filters').innerHTML = statuses.map(s =>
+    `<button class="filter-btn ${s === currentFilter ? 'active' : ''}" data-status="${s}">${s === 'all' ? '全て' : STATUS_LABELS[s] || s}</button>`
+  ).join('');
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.status;
+      renderFilters();
+      renderList();
+    });
+  });
+}
+
+function renderList() {
+  const sortBy = document.getElementById('sort').value;
+  let filtered = currentFilter === 'all' ? [...projects] : projects.filter(p => p.status === currentFilter);
+
+  if (sortBy === 'newest') filtered.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  else if (sortBy === 'oldest') filtered.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  else if (sortBy === 'status') filtered.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+
+  const el = document.getElementById('project-list');
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-dashboard">プロジェクトはまだありません。<br><a href="${API ? '/ideas/' : '/ideas'}">アイディアを投入</a>して始めましょう。</div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(p => {
+    const pills = STATUS_ORDER.slice(0, 5).map(s => {
+      const idx = STATUS_ORDER.indexOf(s);
+      const pIdx = STATUS_ORDER.indexOf(p.status);
+      let cls = '';
+      if (p.status === 'failed') cls = idx <= pIdx ? 'failed' : '';
+      else if (idx < pIdx) cls = 'done';
+      else if (idx === pIdx) cls = 'current';
+      return `<span class="pill ${cls}" title="${STATUS_LABELS[s]}"></span>`;
+    }).join('');
+
+    const tags = [];
+    if (p.has_handoff) tags.push('<span class="tag tag-handoff">handoff</span>');
+    if (p.has_market_research) tags.push('<span class="tag tag-research">調査済</span>');
+    if (p.has_git) tags.push('<span class="tag tag-git">git</span>');
+    if (p.memory_count > 0) tags.push(`<span class="tag tag-memory">memo×${p.memory_count}</span>`);
+
+    const conf = p.confidence != null
+      ? `<span>確信度<span class="confidence-bar"><span class="confidence-fill" style="width:${p.confidence * 100}%"></span></span></span>`
+      : '';
+
+    const category = p.category ? `<span class="project-category">${esc(p.category)}</span>` : '';
+
+    const summary = p.core_summary || p.raw_text || '';
+
+    return `
+      <div class="project-card">
+        <div class="project-header">
+          <div>
+            <div class="project-name">${esc(p.project_name_jp || p.project_name || p.id)}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${category}
+            <span class="status-badge status-${p.status}">${STATUS_LABELS[p.status] || p.status}</span>
+          </div>
+        </div>
+        <div class="project-summary">${esc(summary)}</div>
+        <div class="project-meta">
+          <div class="progress-pills">${pills}</div>
+          <span>${formatDate(p.created_at)}</span>
+          ${conf}
+          <span>${tags.join(' ')}</span>
+        </div>
+        ${p.project_path ? `<div class="project-path">${esc(p.project_path)}</div>` : ''}
+        ${p.error ? `<div style="margin-top:6px;font-size:0.75rem;color:var(--error)">${esc(p.error)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('sort').addEventListener('change', renderList);
+
+// --- WebSocket for live updates ---
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${proto}//${location.host}${API}/ws`);
+  ws.onmessage = () => loadProjects();
+  ws.onclose = () => setTimeout(connectWS, 3000);
+  ws.onerror = () => ws.close();
+}
+connectWS();
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + (iso.includes('Z') || iso.includes('+') ? '' : 'Z'));
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分前`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}時間前`;
+  return d.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+}
+
+loadProjects();
+</script>
+</body>
+</html>

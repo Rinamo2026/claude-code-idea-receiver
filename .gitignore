@@ -1,0 +1,21 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+data/
+input/
+projects/
+.env
+.env.*
+.claude/settings.local.json
+.claude_start.ps1
+.claude_start.sh
+*.stackdump
+
+# IDE / agent config
+.omc/
+.idea/
+.vscode/

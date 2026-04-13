@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Service Portal</title>
+<link rel="stylesheet" href="static/style.css">
+<style>
+  .screen { max-width: 700px; }
+  .portal-header {
+    text-align: center; padding: 24px 0 16px;
+    border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  }
+  .portal-header h1 { font-size: 1.3rem; }
+  .portal-header .sub { color: var(--text-dim); font-size: 0.8rem; margin-top: 4px; }
+
+  .service-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .service-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    display: flex; align-items: center; gap: 14px;
+    text-decoration: none; color: var(--text);
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .service-card:hover { border-color: var(--primary); }
+  .service-card:active { transform: scale(0.99); }
+
+  .service-indicator {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .service-indicator.up { background: var(--success); border-color: var(--success); box-shadow: 0 0 6px rgba(46,213,115,0.4); }
+  .service-indicator.down { background: var(--error); border-color: var(--error); }
+  .service-indicator.checking { animation: pulse 1.2s infinite; background: var(--text-dim); }
+
+  .service-info { flex: 1; min-width: 0; }
+  .service-name { font-weight: 600; font-size: 0.95rem; }
+  .service-desc { color: var(--text-dim); font-size: 0.75rem; margin-top: 2px; }
+  .service-url {
+    font-family: monospace; font-size: 0.65rem; color: var(--text-dim);
+    opacity: 0.6; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .service-badge {
+    flex-shrink: 0; font-size: 0.65rem; font-weight: 600;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .badge-internal { background: var(--surface2); color: var(--text-dim); }
+  .badge-funnel { background: #1e3d3d; color: var(--accent); }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 20px 0 8px; padding-left: 4px;
+  }
+
+  .refresh-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 0.7rem; color: var(--text-dim);
+  }
+  .refresh-bar button {
+    background: none; border: none; color: var(--primary);
+    cursor: pointer; font-size: 0.75rem; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="portal-header">
+      <h1>Service Portal</h1>
+      <div class="sub">Tailscale Funnel Services</div>
+    </div>
+
+    <div class="section-label">Funnel Services</div>
+    <div id="funnel-services" class="service-list"></div>
+
+    <div class="section-label">Internal Services</div>
+    <div id="internal-services" class="service-list"></div>
+
+    <div class="refresh-bar">
+      <span id="last-check">--</span>
+      <button id="btn-refresh" onclick="checkAll()">Refresh</button>
+    </div>
+  </div>
+
+<script>
+const MONITOR_BASE = 'http://127.0.0.1:8700';
+let serviceData = [];
+
+async function loadServices() {
+  try {
+    const res = await fetch(`${MONITOR_BASE}/api/portal/services`);
+    serviceData = await res.json();
+    render();
+    checkAll();
+  } catch (e) {
+    showError('中央監視に接続できません');
+  }
+}
+
+function showError(msg) {
+  const funnelEl = document.getElementById('funnel-services');
+  const internalEl = document.getElementById('internal-services');
+  funnelEl.innerHTML = `<div style="color:var(--error);font-size:0.85rem;padding:12px">${esc(msg)}</div>`;
+  internalEl.innerHTML = '';
+}
+
+function render() {
+  const funnelEl = document.getElementById('funnel-services');
+  const internalEl = document.getElementById('internal-services');
+
+  const funnel = serviceData.filter(s => s.funnel);
+  const internal = serviceData.filter(s => !s.funnel);
+
+  funnelEl.innerHTML = funnel.map(renderCard).join('');
+  internalEl.innerHTML = internal.length > 0
+    ? internal.map(renderCard).join('')
+    : '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px">なし</div>';
+}
+
+function renderCard(s) {
+  const url = s.external_url || s.url;
+  const badge = s.funnel
+    ? `<span class="service-badge badge-funnel">Funnel :${s.funnel_port || 443}</span>`
+    : `<span class="service-badge badge-internal">Internal</span>`;
+  return `
+    <a href="${esc(url)}" class="service-card" id="svc-${esc(s.id)}">
+      <div class="service-indicator checking" id="ind-${esc(s.id)}"></div>
+      <div class="service-info">
+        <div class="service-name">${esc(s.name)}</div>
+        <div class="service-desc">${esc(s.description)}</div>
+        <div class="service-url">${esc(url)}</div>
+      </div>
+      ${badge}
+    </a>
+  `;
+}
+
+async function checkAll() {
+  try {
+    const res = await fetch(`${MONITOR_BASE}/api/portal/services/status`);
+    const statuses = await res.json();
+    for (const s of statuses) {
+      const ind = document.getElementById(`ind-${s.id}`);
+      if (ind) {
+        ind.className = `service-indicator ${s.up ? 'up' : 'down'}`;
+      }
+    }
+    document.getElementById('last-check').textContent =
+      'Last check: ' + new Date().toLocaleTimeString('ja-JP');
+  } catch (e) {
+    document.getElementById('last-check').textContent = '中央監視に接続できません';
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+loadServices();
+setInterval(checkAll, 30000);
+</script>
+</body>
+</html>

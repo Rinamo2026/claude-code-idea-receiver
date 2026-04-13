@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Idea Receiver</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <!-- 認証画面 -->
+  <div id="auth-screen" class="screen hidden">
+    <div class="container">
+      <h1>Idea Receiver</h1>
+      <p class="subtitle">パスキーでログイン</p>
+      <button id="btn-login" class="btn btn-primary btn-large">Face ID / パスキーでログイン</button>
+      <div id="auth-setup" class="hidden">
+        <p>初回セットアップ: パスキーを登録してください</p>
+        <button id="btn-register" class="btn btn-accent btn-large">パスキーを登録</button>
+      </div>
+      <div id="auth-error" class="error hidden"></div>
+    </div>
+  </div>
+
+  <!-- メイン画面 -->
+  <div id="main-screen" class="screen">
+    <header>
+      <h1>Idea Receiver</h1>
+      <div class="header-actions">
+        <a href="/" class="btn btn-ghost" style="text-decoration:none">Portal</a>
+        <a href="/dashboard" class="btn btn-ghost" style="text-decoration:none">PJ一覧</a>
+        <button id="btn-history" class="btn btn-ghost">履歴</button>
+      </div>
+    </header>
+
+    <!-- アイディア入力 (アコーディオン式) -->
+    <div id="input-section" class="section">
+      <div id="slot-list" class="slot-list">
+        <!-- JSで動的生成 -->
+      </div>
+      <textarea id="idea-text" placeholder="アイディアを入力..." rows="6"></textarea>
+      <div class="input-actions">
+        <button id="btn-add-slot" class="btn btn-ghost btn-small">+ 新規スロット</button>
+        <div class="input-actions-right">
+          <span id="sync-status" class="sync-indicator"></span>
+          <button id="btn-submit" class="btn btn-primary">投入</button>
+        </div>
+      </div>
+      <div id="submit-status" class="status hidden"></div>
+    </div>
+
+    <!-- 履歴 -->
+    <div id="history-section" class="section hidden">
+      <h2>投入履歴</h2>
+      <div id="history-list" class="list"></div>
+      <button id="btn-back-from-history" class="btn btn-ghost">戻る</button>
+    </div>
+
+    <!-- 進捗通知 -->
+    <div id="progress-bar" class="hidden">
+      <div class="progress-step" data-step="received">受領</div>
+      <div class="progress-step" data-step="classifying">分類中</div>
+      <div class="progress-step" data-step="creating">PJ作成中</div>
+      <div class="progress-step" data-step="launching">起動中</div>
+      <div class="progress-step" data-step="active">稼働中</div>
+    </div>
+  </div>
+
+<script src="static/app.js"></script>
+</body>
+</html>
