@@ -166,9 +166,15 @@ GENEALOGY_PHASE = DomainPhase(
         "【Step 3: フロンティアマップ】各要素の未開拓領域・本PJが取り組む未解決課題を特定する",
         "【Step 4: クロスドメイン注入】（深度設定で有効な場合）他分野の類似解決策・技術移転候補を調査する",
         "【Step 5: 発展ナラティブ】各要素について「起源→発展→現在→本PJの取り組み」の1段落を構築する",
-        "【保存】全結果を memory/genealogy.md に保存してから Phase 1 へ進む",
+        "【保存】全結果を memory/genealogy.md に保存する",
+        "【ポジショニング表】genealogy.md の SOTA・未開拓領域ごとに、本PJの対応方針を判断し "
+        "memory/positioning.md に保存する。形式:\n"
+        "  | 系譜の知見 | 種別(SOTA/未開拓/停滞分岐) | 本PJの対応(採用/超越/狙う/対象外) | 判断根拠 |\n"
+        "  全ての SOTA 項目に対して「採用」または「超越」を選ぶこと。"
+        "「対象外」は明確な根拠がある場合のみ許容する。\n"
+        "  未開拓領域のうち少なくとも1つは「狙う」を選び、本PJの差別化ポイントとすること。",
     ],
-    output="memory/genealogy.md",
+    output="memory/genealogy.md + memory/positioning.md",
 )
 
 
@@ -1479,10 +1485,11 @@ def format_phases_markdown(domain: DomainConfig) -> str:
         lines.append(f"### {phase.name}")
         lines.append(f"**目標**: {phase.description}\n")
         if i == 0:
-            # Phase 1（最初のドメイン固有フェーズ）: genealogy.md 参照を義務化
+            # Phase 1: genealogy.md + positioning.md を前提条件として義務化
             lines.append(
-                "- **【前提】** `memory/genealogy.md` を読み込み、系譜研究員の分析"
-                "（フロンティア・未解決領域）を踏まえた上で以下のタスクを実施すること"
+                "- **【前提】** `memory/genealogy.md` と `memory/positioning.md` を読み込むこと。"
+                " positioning.md の各判断（採用/超越/狙う/対象外）を踏まえた上で以下のタスクを実施すること。"
+                " SOTA に対して劣後する設計判断をしてはならない"
             )
         for task in phase.tasks:
             lines.append(f"- {task}")
@@ -1573,6 +1580,27 @@ def format_innovation_gate_markdown(domain: DomainConfig) -> str:
     lines.append(
         "**不合格の場合**: 「アイディアの核」に立ち返り、"
         "本質から逸脱した要素を除去してから再評価する。\n"
+    )
+
+    # Step 1.5: SOTA 劣後チェック
+    lines.append("### Step 1.5: SOTA 劣後チェック（positioning.md 検証）\n")
+    lines.append(
+        "`memory/positioning.md` を開き、以下を検証する。\n"
+    )
+    lines.append(
+        "1. **SOTA 劣後がないか**: 「採用」「超越」とした SOTA 項目それぞれについて、"
+        "現在の設計が実際にその水準を満たしているか根拠付きで確認する"
+    )
+    lines.append(
+        "2. **差別化ポイントの反映**: 「狙う」とした未開拓領域が、"
+        "現在の設計に具体的な機能・アプローチとして反映されているか確認する"
+    )
+    lines.append(
+        "3. **「対象外」の妥当性**: 「対象外」とした項目の根拠が依然として有効か再確認する"
+    )
+    lines.append(
+        "\n**不合格の場合**: SOTA 劣後している項目を特定し、Phase 1-2 に戻って設計を改善する。"
+        " 差別化ポイントが未反映の場合も同様。\n"
     )
 
     # Step 2: ドメイン基準評価
