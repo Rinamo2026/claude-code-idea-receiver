@@ -117,7 +117,8 @@ WebAuthn `RP_ID` / `ORIGIN` default to `localhost` — no configuration needed f
 ```env
 # Custom project initialization script (optional)
 # Called as: bash $INIT_PROJECT_SCRIPT <project_path> --git
-# If not set, idea-receiver runs git init + creates memory/ dir automatically.
+# If not set, idea-receiver creates a full project scaffold automatically
+# (git init, memory/, .gitignore, CLAUDE.md, handoff.md, .claude/).
 INIT_PROJECT_SCRIPT=/path/to/init-project.sh
 
 # Git Bash path — Windows only, usually auto-detected
@@ -220,8 +221,8 @@ idea-receiver/
 - [Claude CLI](https://claude.ai/code) — `claude` in PATH
 - Git
 
-Optional (for richer classification):
-- Git Bash (Windows) — for running `INIT_PROJECT_SCRIPT`
+Optional:
+- Git Bash (Windows) — only needed if you set a custom `INIT_PROJECT_SCRIPT`
 
 ---
 

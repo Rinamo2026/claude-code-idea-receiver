@@ -139,7 +139,7 @@ async def create_project(
             raise RuntimeError(f"init-project.sh failed (rc={result.returncode}): stdout={result.stdout.strip()} stderr={result.stderr.strip()}")
         logger.info("Project created via script: %s", result.stdout.strip())
     else:
-        # フォールバック: 最低限の初期化を自前で行う
+        # Built-in init: no external script required.
         proj_path.mkdir(parents=True, exist_ok=True)
         (proj_path / "memory").mkdir(exist_ok=True)
         loop = asyncio.get_event_loop()
@@ -152,6 +152,26 @@ async def create_project(
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             ),
         )
+        # .gitignore for a typical Claude Code project
+        gitignore = proj_path / ".gitignore"
+        if not gitignore.exists():
+            gitignore.write_text(
+                "# Claude Code\n"
+                ".claude/settings.local.json\n"
+                ".claude_start.sh\n"
+                ".claude_start.ps1\n"
+                "\n"
+                "# Python\n"
+                "__pycache__/\n"
+                "*.pyc\n"
+                ".venv/\n"
+                "venv/\n"
+                "\n"
+                "# OS\n"
+                ".DS_Store\n"
+                "Thumbs.db\n",
+                encoding="utf-8",
+            )
         logger.info("Project created (built-in init): %s", proj_path)
 
     # ドメイン情報取得
