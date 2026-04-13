@@ -45,8 +45,9 @@ node_modules/
 Thumbs.db
 GITIGNORE
 
-# --- memory/MEMORY.md ---
-cat > "$PROJECT_PATH/memory/MEMORY.md" << EOF
+# --- memory/index.md ---
+# The /start command reads memory/index.md, so we seed it here.
+cat > "$PROJECT_PATH/memory/index.md" << EOF
 # Memory Index — $PROJECT_NAME
 
 Status: No durable memory yet

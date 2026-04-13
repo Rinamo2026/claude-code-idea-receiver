@@ -4,6 +4,7 @@ import functools
 import json
 import logging
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone, timedelta
@@ -121,11 +122,11 @@ async def create_project(
     _validate_path_within(proj_path, config.DEV_ROOT)
 
     # プロジェクトディレクトリ初期化
-    # Resolve init script: user-provided > bundled template
+    # Resolve init script: user-provided > bundled template > built-in fallback
     init_script = config.INIT_PROJECT_SCRIPT
     if not init_script:
         bundled = config.BASE_DIR / "templates" / "init-project.sh"
-        if bundled.exists():
+        if bundled.exists() and shutil.which(config.GIT_BASH):
             init_script = str(bundled)
 
     loop = asyncio.get_event_loop()
@@ -147,9 +148,10 @@ async def create_project(
                      "custom script" if config.INIT_PROJECT_SCRIPT else "bundled template",
                      result.stdout.strip())
     else:
-        # Minimal fallback: no bash available or template missing
+        # Built-in fallback: no bash available or template missing
         proj_path.mkdir(parents=True, exist_ok=True)
         (proj_path / "memory").mkdir(exist_ok=True)
+        (proj_path / ".claude" / "rules").mkdir(parents=True, exist_ok=True)
         await loop.run_in_executor(
             None,
             functools.partial(
@@ -159,7 +161,27 @@ async def create_project(
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             ),
         )
-        logger.info("Project created (minimal fallback): %s", proj_path)
+        # .gitignore
+        gitignore = proj_path / ".gitignore"
+        if not gitignore.exists():
+            gitignore.write_text(
+                "# Claude Code\n"
+                ".claude/settings.local.json\n"
+                ".claude_start.sh\n"
+                ".claude_start.ps1\n"
+                "\n"
+                "# Python\n"
+                "__pycache__/\n"
+                "*.pyc\n"
+                ".venv/\n"
+                "venv/\n"
+                "\n"
+                "# OS\n"
+                ".DS_Store\n"
+                "Thumbs.db\n",
+                encoding="utf-8",
+            )
+        logger.info("Project created (built-in fallback): %s", proj_path)
 
     # ドメイン情報取得
     domain = get_domain(classification.domain) or get_domain("business")

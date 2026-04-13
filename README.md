@@ -224,7 +224,7 @@ idea-receiver/
 - Git
 
 Optional:
-- Git Bash (Windows) — only needed if you set a custom `INIT_PROJECT_SCRIPT`
+- Bash (or Git Bash on Windows) — enables the bundled `templates/init-project.sh` for richer scaffolding. Without it, a built-in fallback handles project creation
 
 ---
 

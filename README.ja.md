@@ -226,7 +226,7 @@ idea-receiver/
 - Git
 
 任意:
-- Git Bash（Windows）— カスタム `INIT_PROJECT_SCRIPT` を使う場合のみ必要
+- Bash（Windows では Git Bash）— 同梱の `templates/init-project.sh` によるリッチなスキャフォールドに使用。なくても組み込みフォールバックで動作
 
 ---
 
