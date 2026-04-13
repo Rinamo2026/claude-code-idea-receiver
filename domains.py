@@ -172,7 +172,9 @@ GENEALOGY_PHASE = DomainPhase(
         "  | 系譜の知見 | 種別(SOTA/未開拓/停滞分岐) | 本PJの対応(採用/超越/狙う/対象外) | 判断根拠 |\n"
         "  全ての SOTA 項目に対して「採用」または「超越」を選ぶこと。"
         "「対象外」は明確な根拠がある場合のみ許容する。\n"
-        "  未開拓領域のうち少なくとも1つは「狙う」を選び、本PJの差別化ポイントとすること。",
+        "  未開拓領域については「狙う」候補を検討し、差別化に有効なものがあれば選択する"
+        "（Innovation Gate の gate_level が strict の場合は最低1つ必須、"
+        "moderate/practical の場合は推奨だが必須ではない）。",
     ],
     output="memory/genealogy.md + memory/positioning.md",
 )
@@ -1591,17 +1593,29 @@ def format_innovation_gate_markdown(domain: DomainConfig) -> str:
         "1. **SOTA 劣後がないか**: 「採用」「超越」とした SOTA 項目それぞれについて、"
         "現在の設計が実際にその水準を満たしているか根拠付きで確認する"
     )
-    lines.append(
-        "2. **差別化ポイントの反映**: 「狙う」とした未開拓領域が、"
-        "現在の設計に具体的な機能・アプローチとして反映されているか確認する"
-    )
+    if level == "strict":
+        lines.append(
+            "2. **差別化ポイントの反映**: 「狙う」とした未開拓領域が、"
+            "現在の設計に具体的な機能・アプローチとして反映されているか確認する（必須）"
+        )
+    else:
+        lines.append(
+            "2. **差別化ポイントの確認**: 「狙う」とした未開拓領域があれば、"
+            "設計への反映状況を確認する（加点要素。未反映でも SOTA 劣後がなければ通過可）"
+        )
     lines.append(
         "3. **「対象外」の妥当性**: 「対象外」とした項目の根拠が依然として有効か再確認する"
     )
-    lines.append(
-        "\n**不合格の場合**: SOTA 劣後している項目を特定し、Phase 1-2 に戻って設計を改善する。"
-        " 差別化ポイントが未反映の場合も同様。\n"
-    )
+    if level == "strict":
+        lines.append(
+            "\n**不合格の場合**: SOTA 劣後している項目を特定し、Phase 1-2 に戻って設計を改善する。"
+            " 差別化ポイントが未反映の場合も同様。\n"
+        )
+    else:
+        lines.append(
+            "\n**不合格の場合**: SOTA 劣後が1つでもあれば Phase 1-2 に戻る。"
+            " 差別化は推奨だが、既存手法の適切な活用で目的を達成できるなら通過可。\n"
+        )
 
     # Step 2: ドメイン基準評価
     lines.append(f"### Step 2: ドメイン基準評価（合格基準: {gate.minimum_score}）\n")
@@ -1680,11 +1694,12 @@ def format_genealogy_framework_markdown(domain: DomainConfig) -> str:
         "全プロジェクト共通の根幹フレームワーク。Phase 0 として必ず最初に実行する。\n"
         "アイディアを「発展の文脈の中に位置づける」ことで、立ち上げ時点で分野の最先端に立つことを目指す。\n\n"
         "**実行者**: 系譜研究員（genealogist）サブエージェント\n"
-        "**出力**: `memory/genealogy.md`\n"
+        "**出力**: `memory/genealogy.md` + `memory/positioning.md`\n"
         f"**このドメインの深度設定**: 要素上限 {depth.max_elements} 個 / "
         f"要素ごとMCP最大 {depth.max_sources_per_element} ソース / "
         f"クロスドメイン調査（Step 4）: {cross}\n\n"
-        "**以降の全フェーズ**: `memory/genealogy.md` を読み込み、フロンティア分析を踏まえて作業を進めること\n\n"
+        "**以降の全フェーズ**: `memory/genealogy.md` と `memory/positioning.md` を読み込み、"
+        "ポジショニング判断を踏まえて作業を進めること\n\n"
         "> 画家が評価される作品を生むために美術史の系譜を深く理解するように、\n"
         "> あらゆる分野で「発展の文脈の中に位置づける」ことが進歩の条件である。\n"
     )

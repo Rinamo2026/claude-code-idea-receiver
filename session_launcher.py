@@ -32,9 +32,10 @@ async def launch_session(project_path: str, handoff_path: str, project_name: str
         "   - handoff.md のチームロスターに記載の prompt_directive を参照\n"
         "   - 深度設定は Phase 0 タスク記述の「深度設定」欄に従う\n"
         "   - 完了したら memory/genealogy.md に保存する\n"
-        "2. genealogy.md 完成後、Phase 1 以降に進む\n"
-        "   - 各フェーズは必ず genealogy.md のフロンティア分析を参照する\n"
-        "   - Phase 1 の各メンバーは genealogy.md の知見を起点に調査を開始する\n"
+        "   - 続けてポジショニング表を作成し memory/positioning.md に保存する\n"
+        "2. genealogy.md + positioning.md 完成後、Phase 1 以降に進む\n"
+        "   - 各フェーズは positioning.md の判断（採用/超越/狙う/対象外）を踏まえて作業する\n"
+        "   - SOTA に対して劣後する設計判断をしてはならない\n"
         "3. Phase 2 完了後は Innovation Gate を必ず実施する\n"
         "   - 系譜的位置づけ基準をクリアするまで Phase 3 に進まない\n"
     )
